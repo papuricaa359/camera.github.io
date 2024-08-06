@@ -18,8 +18,7 @@
                 'apiKey': 'AIzaSyA-xMFSnBvEYXCZsoUeci-OM6F38fMg21U',
                 'clientId': '923570797082-ce2b6ql1nnva0l402ej2rheq6ubffnbd.apps.googleusercontent.com',
                 'discoveryDocs': ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
-                'scope': SCOPE,
-                'cookie_policy': 'single_host_origin'
+                'scope': SCOPE
             }).then(() => {
                 GoogleAuth = gapi.auth2.getAuthInstance();
                 GoogleAuth.isSignedIn.listen(updateSigninStatus);
