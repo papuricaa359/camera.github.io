@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Capture</title>
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script>
+        let GoogleAuth;
+        const SCOPE = 'https://www.googleapis.com/auth/drive.file';
+
+        function handleClientLoad() {
+            gapi.load('client:auth2', initClient);
+        }
+
+        function initClient() {
+            gapi.client.init({
+                'apiKey': 'AIzaSyA-xMFSnBvEYXCZsoUeci-OM6F38fMg21U',
+                'clientId': '923570797082-ce2b6ql1nnva0l402ej2rheq6ubffnbd.apps.googleusercontent.com',
+                'discoveryDocs': ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+                'scope': SCOPE
+            }).then(() => {
+                GoogleAuth = gapi.auth2.getAuthInstance();
+                GoogleAuth.isSignedIn.listen(updateSigninStatus);
+                updateSigninStatus(GoogleAuth.isSignedIn.get());
+            });
+        }
+
+        function updateSigninStatus(isSignedIn) {
+            if (isSignedIn) {
+                document.getElementById('startBtn').style.display = 'block';
+            } else {
+                document.getElementById('startBtn').style.display = 'none';
+            }
+        }
+
+        function handleAuthClick() {
+            GoogleAuth.signIn();
+        }
+
+        function handleSignOutClick() {
+            GoogleAuth.signOut();
+        }
+
+        function uploadFile(blob, callback) {
+            const metadata = {
+                'name': 'capture.png',
+                'mimeType': 'image/png',
+                'parents': ['199sefv-y5V6B2wj0FfxtsvZnO71FwRd2'] // Google DriveのフォルダIDを設定
+            };
+
+            const formData = new FormData();
+            formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+            formData.append('file', blob);
+
+            const request = new XMLHttpRequest();
+            request.open('POST', 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart');
+            request.setRequestHeader('Authorization', 'Bearer ' + GoogleAuth.currentUser.get().getAuthResponse().access_token);
+
+            request.onload = () => {
+                if (request.status === 200) {
+                    const file = JSON.parse(request.response);
+                    callback(file);
+                } else {
+                    console.error('File upload failed:', request.responseText);
+                    callback(null);
+                }
+            };
+
+            request.send(formData);
+        }
+
+        function captureImage() {
+            const canvas = document.getElementById('canvas');
+            const context = canvas.getContext('2d');
+            const video = document.getElementById('video');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob((blob) => {
+                uploadFile(blob, (file) => {
+                    if (file && file.id) {
+                        const timestamp = new Date().toISOString();
+                        const fileName = file.name;
+                        const fileUrl = `https://drive.google.com/file/d/${file.id}/view`;
+                        document.getElementById('status').textContent = `撮影成功: ${timestamp}`;
+                    } else {
+                        document.getElementById('status').textContent = 'ファイルのアップロードに失敗しました';
+                    }
+                });
+            }, 'image/png');
+        }
+
+        function startCapture() {
+            captureImage();
+            setInterval(captureImage, 600000); // 10分ごとに撮影
+        }
+    </script>
+</head>
+<body onload="handleClientLoad()">
+    <h1>カメラキャプチャ</h1>
+    <video id="video" width="640" height="480" autoplay></video>
+    <canvas id="canvas" width="640" height="480" style="display:none;"></canvas>
+    <button id="startBtn" style="display:none;" onclick="startCapture()">撮影開始</button>
+    <button onclick="handleAuthClick()">サインイン</button>
+    <button onclick="handleSignOutClick()">サインアウト</button>
+    <div id="status"></div>
+</body>
+</html>
