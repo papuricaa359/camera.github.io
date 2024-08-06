@@ -18,15 +18,20 @@
                 'apiKey': 'AIzaSyA-xMFSnBvEYXCZsoUeci-OM6F38fMg21U',
                 'clientId': '923570797082-ce2b6ql1nnva0l402ej2rheq6ubffnbd.apps.googleusercontent.com',
                 'discoveryDocs': ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
-                'scope': SCOPE
+                'scope': SCOPE,
+                'cookie_policy': 'single_host_origin'
             }).then(() => {
                 GoogleAuth = gapi.auth2.getAuthInstance();
                 GoogleAuth.isSignedIn.listen(updateSigninStatus);
                 updateSigninStatus(GoogleAuth.isSignedIn.get());
+            }).catch(error => {
+                console.error('Failed to initialize client:', error);
+                document.getElementById('status').textContent = 'クライアントの初期化に失敗しました。';
             });
         }
 
         function updateSigninStatus(isSignedIn) {
+            console.log('Sign-in status changed:', isSignedIn);
             if (isSignedIn) {
                 document.getElementById('startBtn').style.display = 'block';
             } else {
@@ -35,11 +40,21 @@
         }
 
         function handleAuthClick() {
-            GoogleAuth.signIn();
+            GoogleAuth.signIn().then(() => {
+                console.log('Sign-in successful');
+            }).catch(error => {
+                console.error('Sign-in failed:', error);
+                document.getElementById('status').textContent = 'サインインに失敗しました。';
+            });
         }
 
         function handleSignOutClick() {
-            GoogleAuth.signOut();
+            GoogleAuth.signOut().then(() => {
+                console.log('Sign-out successful');
+            }).catch(error => {
+                console.error('Sign-out failed:', error);
+                document.getElementById('status').textContent = 'サインアウトに失敗しました。';
+            });
         }
 
         function uploadFile(blob, callback) {
@@ -65,6 +80,11 @@
                     console.error('File upload failed:', request.responseText);
                     callback(null);
                 }
+            };
+
+            request.onerror = () => {
+                console.error('Request error:', request.responseText);
+                document.getElementById('status').textContent = 'ファイルのアップロード中にエラーが発生しました。';
             };
 
             request.send(formData);
